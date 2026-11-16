@@ -9,12 +9,28 @@ android {
         version = release(37)
     }
 
+    val envVersionName = System.getenv("APP_VERSION_NAME")
+        ?: project.findProperty("versionName") as? String
+    val cleanVersionName = envVersionName?.removePrefix("v")?.trim()?.ifBlank { null } ?: "1.0.0"
+
+    val envVersionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull()
+        ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
+        ?: run {
+            val parts = cleanVersionName.split(".").mapNotNull { it.toIntOrNull() }
+            if (parts.size >= 2) {
+                val major = parts.getOrElse(0) { 0 }
+                val minor = parts.getOrElse(1) { 0 }
+                val patch = parts.getOrElse(2) { 0 }
+                major * 10000 + minor * 100 + patch
+            } else 1
+        }
+
     defaultConfig {
         applicationId = "com.katowproject.costly"
         minSdk = 33
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = envVersionCode
+        versionName = cleanVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
