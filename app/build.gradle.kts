@@ -22,27 +22,34 @@ android {
     signingConfigs {
         create("release") {
             val envKeystore = System.getenv("KEYSTORE_FILE")
-            if (!envKeystore.isNullOrBlank()) {
-                val resolved = file(envKeystore)
-                if (resolved.exists()) {
-                    storeFile = resolved
-                    storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
-                    keyAlias = System.getenv("KEY_ALIAS") ?: "costly"
-                    keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
-                }
+            val keystoreFile = when {
+                !envKeystore.isNullOrBlank() && file(envKeystore).exists() -> file(envKeystore)
+                !envKeystore.isNullOrBlank() && rootProject.file(envKeystore).exists() -> rootProject.file(envKeystore)
+                file("release.keystore").exists() -> file("release.keystore")
+                rootProject.file("release.keystore").exists() -> rootProject.file("release.keystore")
+                else -> null
+            }
+            if (keystoreFile != null) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "costly"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
             }
         }
     }
 
     buildTypes {
         release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             val releaseSigning = signingConfigs.getByName("release")
-            if (releaseSigning.storeFile != null) {
-                signingConfig = releaseSigning
-            }
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+            signingConfig = if (releaseSigning.storeFile != null) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
             }
         }
     }
