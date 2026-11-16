@@ -53,42 +53,103 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
     var goal by remember { mutableStateOf<Goal?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val data = vm.data
-    val scrollState = rememberScrollState()
-    LaunchedEffect(screen) { scrollState.scrollTo(0) }
     LaunchedEffect(vm.message) { vm.message?.let { snackbar.showSnackbar(it); vm.message = null } }
+    var previousScreen by rememberSaveable { mutableStateOf("home") }
+    val navigateTo: (String) -> Unit = { target ->
+        if (target != screen) {
+            previousScreen = screen
+            screen = target
+        }
+    }
     BackHandler(enabled = showEntry || screen != "home") {
         if (showEntry) showEntry = false
-        else screen = if (screen in listOf("settings", "categories", "wallets", "recurring", "debts")) "more" else "home"
+        else {
+            val dest = if (screen in listOf("settings", "categories", "wallets", "recurring", "debts", "budget")) {
+                if (previousScreen != screen && previousScreen !in listOf("settings", "categories", "wallets", "recurring", "debts", "budget")) previousScreen else "more"
+            } else "home"
+            previousScreen = screen
+            screen = dest
+        }
     }
     val addEntry: () -> Unit = { editId = 0; showEntry = true }
     Scaffold(
         containerColor = Page,
         snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = { if (!showEntry) BottomBar(screen, { screen = it }, addEntry) }
+        bottomBar = { if (!showEntry) BottomBar(screen, navigateTo, addEntry) }
     ) { padding ->
         if (!vm.ready) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple) }
-        } else if (showEntry) {
-            EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false }, Modifier.padding(padding))
         } else {
-            Column(
-                Modifier.fillMaxSize().padding(padding).widthIn(max = 680.dp).padding(horizontal = 22.dp)
-                    .verticalScroll(scrollState).padding(top = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                when (screen) {
-                    "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
-                    "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
-                    "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
-                    "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
-                    "more" -> MoreScreen(data, { screen = it }, { dialog = "profile" })
-                    "settings" -> SettingsScreen(vm, { screen = "more" })
-                    "wallets" -> WalletsScreen(vm, { screen = "more" }, { dialog = "wallet" })
-                    "categories" -> CategoriesScreen(vm, { screen = "more" }, { dialog = "category" })
-                    "recurring" -> RecurringScreen(vm, { screen = "more" }, { dialog = "recurring" })
-                    "debts" -> DebtsScreen(vm, { screen = "more" }, { dialog = "debt" })
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        val toSub = targetState in listOf("settings", "wallets", "categories", "recurring", "debts", "budget")
+                        val fromSub = initialState in listOf("settings", "wallets", "categories", "recurring", "debts", "budget")
+                        val tabs = listOf("home", "transactions", "reports", "more")
+                        val initialIndex = tabs.indexOf(initialState)
+                        val targetIndex = tabs.indexOf(targetState)
+
+                        val spec = if (toSub && !fromSub) {
+                            (slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(280))) togetherWith
+                                (slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(animationSpec = tween(200)))
+                        } else if (!toSub && fromSub) {
+                            (slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { -it / 4 } + fadeIn(animationSpec = tween(220))) togetherWith
+                                (slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(280)))
+                        } else if (initialIndex != -1 && targetIndex != -1) {
+                            if (targetIndex > initialIndex) {
+                                (slideInHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { it / 5 } + fadeIn(animationSpec = tween(220))) togetherWith
+                                    (slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { -it / 5 } + fadeOut(animationSpec = tween(180)))
+                            } else {
+                                (slideInHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { -it / 5 } + fadeIn(animationSpec = tween(220))) togetherWith
+                                    (slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it / 5 } + fadeOut(animationSpec = tween(180)))
+                            }
+                        } else {
+                            (fadeIn(animationSpec = tween(220)) + slideInHorizontally(animationSpec = tween(220)) { it / 16 }) togetherWith
+                                (fadeOut(animationSpec = tween(180)) + slideOutHorizontally(animationSpec = tween(180)) { -it / 16 })
+                        }
+                        spec.using(null)
+                    },
+                    label = "screen_transition",
+                    modifier = Modifier.fillMaxSize()
+                ) { targetScreen ->
+                    val screenScrollState = rememberScrollState()
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = 22.dp)
+                            .verticalScroll(screenScrollState)
+                            .padding(top = 16.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        when (targetScreen) {
+                            "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, navigateTo, { dialog = it }, { editId = it.id; showEntry = true })
+                            "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
+                            "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
+                            "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
+                            "more" -> MoreScreen(data, navigateTo, { dialog = "profile" })
+                            "settings" -> SettingsScreen(vm, { navigateTo("more") })
+                            "wallets" -> WalletsScreen(vm, { navigateTo("more") }, { dialog = "wallet" })
+                            "categories" -> CategoriesScreen(vm, { navigateTo("more") }, { dialog = "category" })
+                            "recurring" -> RecurringScreen(vm, { navigateTo("more") }, { dialog = "recurring" })
+                            "debts" -> DebtsScreen(vm, { navigateTo("more") }, { dialog = "debt" })
+                            else -> Dashboard(data, month, { monthText = it.toString() }, addEntry, navigateTo, { dialog = it }, { editId = it.id; showEntry = true })
+                        }
+                        Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
                 }
-                Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+
+                AnimatedVisibility(
+                    visible = showEntry,
+                    enter = slideInVertically(animationSpec = tween(320, easing = FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(300)),
+                    exit = slideOutVertically(animationSpec = tween(280, easing = FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(220)),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Surface(color = Page, modifier = Modifier.fillMaxSize()) {
+                        EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false })
+                    }
+                }
             }
         }
     }
