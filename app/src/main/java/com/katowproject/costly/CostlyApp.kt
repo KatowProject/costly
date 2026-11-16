@@ -1,7 +1,11 @@
 package com.katowproject.costly
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -61,26 +66,56 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { if (!showEntry) BottomBar(screen, { screen = it }, addEntry) }
     ) { padding ->
-        if (!vm.ready) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple) }
-        else if (showEntry) EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false }, Modifier.padding(padding))
-        else Column(
-            Modifier.fillMaxSize().padding(padding).widthIn(max = 680.dp).padding(horizontal = 22.dp)
-                .verticalScroll(scrollState).padding(top = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            when (screen) {
-                "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
-                "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
-                "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
-                "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
-                "more" -> MoreScreen(data, { screen = it }, { dialog = "profile" })
-                "settings" -> SettingsScreen(vm, { screen = "more" })
-                "wallets" -> WalletsScreen(vm, { screen = "more" }, { dialog = "wallet" })
-                "categories" -> CategoriesScreen(vm, { screen = "more" }, { dialog = "category" })
-                "recurring" -> RecurringScreen(vm, { screen = "more" }, { dialog = "recurring" })
-                "debts" -> DebtsScreen(vm, { screen = "more" }, { dialog = "debt" })
+        if (!vm.ready) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple) }
+        } else {
+            AnimatedContent(
+                targetState = showEntry,
+                transitionSpec = {
+                    if (targetState) {
+                        (slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(300))) togetherWith
+                            fadeOut(animationSpec = tween(200))
+                    } else {
+                        fadeIn(animationSpec = tween(250)) togetherWith
+                            (slideOutVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(200)))
+                    }
+                },
+                label = "entry_editor_transition"
+            ) { isEditing ->
+                if (isEditing) {
+                    EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false }, Modifier.padding(padding))
+                } else {
+                    Column(
+                        Modifier.fillMaxSize().padding(padding).widthIn(max = 680.dp).padding(horizontal = 22.dp)
+                            .verticalScroll(scrollState).padding(top = 16.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        AnimatedContent(
+                            targetState = screen,
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(220)) + slideInHorizontally(animationSpec = tween(220)) { it / 16 }) togetherWith
+                                    (fadeOut(animationSpec = tween(180)) + slideOutHorizontally(animationSpec = tween(180)) { -it / 16 })
+                            },
+                            label = "tab_screen_transition"
+                        ) { currentScreen ->
+                            when (currentScreen) {
+                                "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
+                                "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
+                                "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
+                                "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
+                                "more" -> MoreScreen(data, { screen = it }, { dialog = "profile" })
+                                "settings" -> SettingsScreen(vm, { screen = "more" })
+                                "wallets" -> WalletsScreen(vm, { screen = "more" }, { dialog = "wallet" })
+                                "categories" -> CategoriesScreen(vm, { screen = "more" }, { dialog = "category" })
+                                "recurring" -> RecurringScreen(vm, { screen = "more" }, { dialog = "recurring" })
+                                "debts" -> DebtsScreen(vm, { screen = "more" }, { dialog = "debt" })
+                                else -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
+                            }
+                        }
+                        Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
             }
-            Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
     if (dialog.isNotEmpty()) EntityDialog(dialog, vm, month, goal, { dialog = "" })
@@ -93,16 +128,29 @@ private fun BottomBar(screen: String, onScreen: (String) -> Unit, onAdd: () -> U
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceAround) {
             listOf("home" to strings.navHome, "transactions" to strings.navTransactions, "add" to "", "reports" to strings.navReports, "more" to strings.navMore).forEach { (key, label) ->
                 if (key == "add") Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(52.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Color(0xFFA76AF7), Purple, Color(0xFF5B24BA)))).clickable(onClick = onAdd), contentAlignment = Alignment.Center) {
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+                    val scale by animateFloatAsState(if (isPressed) 0.88f else 1f, label = "fab_scale")
+                    Box(
+                        Modifier
+                            .scale(scale)
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(Color(0xFFA76AF7), Purple, Color(0xFF5B24BA))))
+                            .clickable(interactionSource = interactionSource, indication = null, onClick = onAdd),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Glyph("plus", Modifier.size(26.dp), tint = Color.White, description = strings.addTransactionDesc)
                     }
                 } else {
                     val selected = screen == key || (key == "more" && screen in listOf("budget", "settings", "categories", "wallets", "recurring", "debts"))
+                    val animColor by animateColorAsState(if (selected) Purple else Muted, animationSpec = tween(220), label = "tab_color")
+                    val animBg by animateColorAsState(if (selected) Lavender else Color.Transparent, animationSpec = tween(220), label = "tab_bg")
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable { onScreen(key) }.padding(vertical = 7.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) Lavender else Color.Transparent).padding(horizontal = 13.dp, vertical = 4.dp)) {
-                            Glyph(when(key) { "home" -> "home"; "transactions" -> "list"; "reports" -> "chart"; else -> "menu" }, Modifier.size(21.dp), tint = if (selected) Purple else Muted)
+                        Box(Modifier.clip(RoundedCornerShape(10.dp)).background(animBg).padding(horizontal = 13.dp, vertical = 4.dp)) {
+                            Glyph(when(key) { "home" -> "home"; "transactions" -> "list"; "reports" -> "chart"; else -> "menu" }, Modifier.size(21.dp), tint = animColor)
                         }
-                        Text(label, fontSize = 10.sp, color = if (selected) Purple else Muted, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+                        Text(label, fontSize = 10.sp, color = animColor, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                     }
                 }
             }
@@ -142,7 +190,16 @@ fun ColumnScope.Dashboard(data: FinanceData, month: YearMonth, onMonth: (YearMon
             Text(strings.totalBalance, color = Color.White.copy(alpha = .85f), fontSize = 13.sp, modifier = Modifier.weight(1f))
             IconButton({ hidden = !hidden }, Modifier.size(30.dp)) { Glyph("eye", Modifier.size(20.dp), Color.White, strings.toggleBalanceDesc) }
         }
-        Text(if (hidden) "${currency.symbol} ••••••••" else currency.format(data.balance(), strings.language), color = Color.White, fontSize = 31.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, maxLines = 1)
+        AnimatedContent(
+            targetState = hidden,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(200)) + slideInVertically(animationSpec = tween(200)) { it / 4 }) togetherWith
+                    (fadeOut(animationSpec = tween(150)) + slideOutVertically(animationSpec = tween(150)) { -it / 4 })
+            },
+            label = "balance_toggle_anim"
+        ) { isHidden ->
+            Text(if (isHidden) "${currency.symbol} ••••••••" else currency.format(data.balance(), strings.language), color = Color.White, fontSize = 31.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, maxLines = 1)
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(strings.walletsConnected(data.wallets.size), color = Color.White.copy(alpha = .7f), fontSize = 11.sp, modifier = Modifier.weight(1f))
             Text("COSTLY", color = Color.White.copy(alpha = .65f), fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)

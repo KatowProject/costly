@@ -1,11 +1,16 @@
 package com.katowproject.costly
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -29,17 +34,24 @@ fun CategoryDonut(data: FinanceData, month: YearMonth) {
     val total = data.total("EXPENSE", month)
     val parts = categoryTotals(data, month)
     val emptyColor = Line
+    val animProgress = remember(month, total) { Animatable(0f) }
+    LaunchedEffect(month, total) {
+        animProgress.animateTo(1f, animationSpec = tween(700, easing = FastOutSlowInEasing))
+    }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         Box(Modifier.size(140.dp), contentAlignment = Alignment.Center) {
             Canvas(Modifier.size(136.dp)) {
                 val thickness = 20.dp.toPx()
                 val inset = thickness / 2
-                if (total == 0L) drawArc(emptyColor, 0f, 360f, false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
+                val p = animProgress.value
+                if (total == 0L) drawArc(emptyColor, 0f, 360f * p, false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
                 else {
                     var start = -90f
                     parts.forEach { (category, amount) ->
-                        val sweep = amount.toFloat() / total * 360f
-                        drawArc(Color(category.color), start + .7f, (sweep - 1.4f).coerceAtLeast(.1f), false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
+                        val sweep = (amount.toFloat() / total * 360f) * p
+                        if (sweep > 0.4f) {
+                            drawArc(Color(category.color), start + .7f, (sweep - 1.4f).coerceAtLeast(.1f), false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
+                        }
                         start += sweep
                     }
                 }
@@ -73,6 +85,10 @@ fun CashFlowChart(data: FinanceData, month: YearMonth) {
     val gridColor = Line
     val incomeColor = Green
     val expenseColor = Red
+    val animProgress = remember(month, entries.size) { Animatable(0f) }
+    LaunchedEffect(month, entries.size) {
+        animProgress.animateTo(1f, animationSpec = tween(750, easing = FastOutSlowInEasing))
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         listOf(strings.income to incomeColor, strings.expense to expenseColor).forEach { (name, color) ->
             Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -89,10 +105,11 @@ fun CashFlowChart(data: FinanceData, month: YearMonth) {
             }
         }
         Canvas(Modifier.weight(1f).fillMaxHeight().padding(vertical = 5.dp)) {
+            val p = animProgress.value
             (0..4).forEach { row -> val y = size.height * row / 4; drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx()) }
             listOf(income to incomeColor, expense to expenseColor).forEach { (values, color) ->
                 val path = Path()
-                values.forEachIndexed { index, value -> val x = size.width * index / (values.size - 1); val y = size.height * (1 - value / maximum); if (index == 0) path.moveTo(x, y) else path.lineTo(x, y) }
+                values.forEachIndexed { index, value -> val x = size.width * index / (values.size - 1); val y = size.height * (1 - (value * p) / maximum); if (index == 0) path.moveTo(x, y) else path.lineTo(x, y) }
                 val fill = Path().apply { addPath(path); lineTo(size.width, size.height); lineTo(0f, size.height); close() }
                 drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = .13f), color.copy(alpha = 0f))))
                 drawPath(path, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))

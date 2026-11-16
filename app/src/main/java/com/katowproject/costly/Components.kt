@@ -1,6 +1,11 @@
 package com.katowproject.costly
 
 import android.app.DatePickerDialog
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,8 +102,11 @@ fun DateField(label: String, date: LocalDate, onDate: (LocalDate) -> Unit) {
 fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(Line).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         options.forEachIndexed { i, text ->
-            Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (i == selected) CardBg else Color.Transparent).clickable { onSelect(i) }.padding(vertical = 11.dp), contentAlignment = Alignment.Center) {
-                Text(text, color = if (i == selected) Purple else Muted, fontSize = 12.sp, fontWeight = if (i == selected) FontWeight.Bold else FontWeight.Medium)
+            val isSelected = i == selected
+            val animBg by animateColorAsState(if (isSelected) CardBg else Color.Transparent, animationSpec = tween(220), label = "seg_bg")
+            val animColor by animateColorAsState(if (isSelected) Purple else Muted, animationSpec = tween(220), label = "seg_text")
+            Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(animBg).clickable { onSelect(i) }.padding(vertical = 11.dp), contentAlignment = Alignment.Center) {
+                Text(text, color = animColor, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
             }
         }
     }
@@ -140,8 +148,13 @@ fun EmptyState(title: String, subtitle: String, icon: String = "list", action: S
 }
 @Composable
 fun ProgressBar(fraction: Float, color: Color = Purple) {
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "progress_anim"
+    )
     Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(8.dp)).background(Line)) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Brush.horizontalGradient(listOf(color, color.copy(alpha = .65f)))))
+        Box(Modifier.fillMaxWidth(animatedFraction).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Brush.horizontalGradient(listOf(color, color.copy(alpha = .65f)))))
     }
 }
 @Composable
