@@ -89,7 +89,7 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
 @Composable
 private fun BottomBar(screen: String, onScreen: (String) -> Unit, onAdd: () -> Unit) {
     val strings = LocalStrings.current
-    Surface(color = Color.White, shadowElevation = 12.dp) {
+    Surface(color = CardBg, shadowElevation = 12.dp) {
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceAround) {
             listOf("home" to strings.navHome, "transactions" to strings.navTransactions, "add" to "", "reports" to strings.navReports, "more" to strings.navMore).forEach { (key, label) ->
                 if (key == "add") Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -120,7 +120,7 @@ fun ColumnScope.Dashboard(data: FinanceData, month: YearMonth, onMonth: (YearMon
             Text(strings.greeting(java.time.LocalTime.now().hour), fontSize = 13.sp, color = Muted)
             Text("${data.settings["user_name"] ?: strings.defaultUserName} 👋", fontSize = 25.sp, fontWeight = FontWeight.Bold, letterSpacing = (-.8).sp)
         }
-        Surface(onClick = { navigate("budget") }, color = Color.White, shape = CircleShape, border = BorderStroke(1.dp, Line)) {
+        Surface(onClick = { navigate("budget") }, color = CardBg, shape = CircleShape, border = BorderStroke(1.dp, Line)) {
             Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
                 Glyph("target", Modifier.size(22.dp), tint = Purple, description = strings.budgetAndGoalsDesc)
             }

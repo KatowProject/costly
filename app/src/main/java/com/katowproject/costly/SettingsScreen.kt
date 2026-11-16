@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +87,28 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
         )
     }
 
+    // Theme Card
+    val currentTheme = settings["theme_mode"] ?: "system"
+    val themeLabel = when (currentTheme) {
+        "dark" -> strings.themeDark
+        "light" -> strings.themeLight
+        else -> strings.themeSystem
+    }
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Glyph("sun", Modifier.size(21.dp), Purple)
+            Spacer(Modifier.width(10.dp))
+            Text(strings.themeModeTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(12.dp))
+        SettingsRow(
+            icon = if (currentTheme == "dark") "moon" else "sun",
+            title = strings.themeModeTitle,
+            detail = "$themeLabel · ${strings.themeModeSub}",
+            onClick = { dialog = "theme" }
+        )
+    }
+
     // Currency Card
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -105,7 +128,21 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
     // Backup & Restore Card
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) { Glyph("cloud", Modifier.size(21.dp), Purple); Spacer(Modifier.width(10.dp)); Text(strings.backupAndRestore, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+        val lastLocal = settings["last_backup"]?.let { runCatching { val date = java.time.LocalDateTime.parse(it); "${localizedDateLabel(date.toLocalDate(), strings.lang)}, ${date.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}" }.getOrDefault(it) }
+        Row(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (lastLocal != null) Green.copy(alpha = 0.12f) else Muted.copy(alpha = 0.12f)).padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Glyph(if (lastLocal != null) "check" else "info", Modifier.size(15.dp), if (lastLocal != null) Green else Muted)
+            Spacer(Modifier.width(8.dp))
+            Text(if (lastLocal != null) strings.lastBackupSuccess(lastLocal) else strings.neverBackedUp, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (lastLocal != null) Green else Muted)
+        }
+        if (!settings["backup_error"].isNullOrBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(strings.autoBackupErrorLabel(settings["backup_error"]!!), fontSize = 11.sp, color = Red)
+        }
+        Spacer(Modifier.height(10.dp))
         SettingsRow("repeat", strings.automaticBackup, strings.automaticBackupSub, {
             if (settings["backup_enabled"] == "true") vm.setting("backup_enabled", "false")
             else if (settings["backup_folder"].isNullOrBlank()) vm.message = strings.selectBackupFolderFirst
@@ -135,9 +172,6 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
         HorizontalDivider(color = Line)
         SettingsRow("download", strings.restoreData, strings.restoreDataSub, { openBackup.launch(arrayOf("*/*")) })
     }
-    val last = settings["last_backup"]?.let { runCatching { val date = java.time.LocalDateTime.parse(it); "${localizedDateLabel(date.toLocalDate(), strings.lang)}, ${date.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}" }.getOrDefault(it) } ?: strings.never
-    Text(strings.lastBackupLabel(last), fontSize = 11.sp, color = Muted)
-    settings["backup_error"]?.takeIf { it.isNotBlank() }?.let { Text(strings.autoBackupErrorLabel(it), fontSize = 11.sp, color = Red) }
 
     // Google Drive Cloud Backup Card
     val isDriveConnected = GoogleDriveService.isConnected(context)
@@ -150,6 +184,26 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Text(strings.googleDriveDesc, fontSize = 12.sp, color = Muted)
+        Spacer(Modifier.height(10.dp))
+
+        val lastDrive = settings["last_gdrive_backup"]?.let {
+            runCatching {
+                val date = java.time.LocalDateTime.parse(it)
+                "${localizedDateLabel(date.toLocalDate(), strings.lang)}, ${date.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}"
+            }.getOrDefault(it)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (lastDrive != null) Purple.copy(alpha = 0.12f) else Muted.copy(alpha = 0.12f)).padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Glyph(if (lastDrive != null) "cloud" else "info", Modifier.size(15.dp), if (lastDrive != null) Purple else Muted)
+            Spacer(Modifier.width(8.dp))
+            Text(if (lastDrive != null) strings.lastCloudSyncSuccess(lastDrive) else strings.neverCloudSynced, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (lastDrive != null) Purple else Muted)
+        }
+        if (!settings["gdrive_backup_error"].isNullOrBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(strings.autoGdriveBackupErrorLabel(settings["gdrive_backup_error"]!!), fontSize = 11.sp, color = Red)
+        }
         Spacer(Modifier.height(12.dp))
 
         if (!isDriveConnected) {
@@ -229,32 +283,131 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
             )
         }
     }
-    val lastDrive = settings["last_gdrive_backup"]?.let {
-        runCatching {
-            val date = java.time.LocalDateTime.parse(it)
-            "${localizedDateLabel(date.toLocalDate(), strings.lang)}, ${date.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}"
-        }.getOrDefault(it)
-    }
-    if (lastDrive != null) {
-        Text(strings.lastGdriveBackupLabel(lastDrive), fontSize = 11.sp, color = Muted)
-    }
-    settings["gdrive_backup_error"]?.takeIf { it.isNotBlank() }?.let {
-        Text(strings.autoGdriveBackupErrorLabel(it), fontSize = 11.sp, color = Red)
-    }
 
     // Security Card
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) { Glyph("shield", Modifier.size(21.dp), Purple); Spacer(Modifier.width(10.dp)); Text(strings.security, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         SettingsRow("lock", strings.appLock, strings.appLockSub, { dialog = if (settings["app_lock"] == "true") "disablePin" else "pin" }, trailing = { Switch(settings["app_lock"] == "true", { dialog = if (it) "pin" else "disablePin" }, modifier = Modifier.height(28.dp)) })
+        if (settings["app_lock"] == "true") {
+            HorizontalDivider(color = Line)
+            val currentTimeout = settings["lock_timeout"] ?: "60"
+            val timeoutLabel = when (currentTimeout) {
+                "0" -> strings.lockImmediately
+                "30" -> strings.lockAfter30s
+                "300" -> strings.lockAfter5m
+                else -> strings.lockAfter1m
+            }
+            SettingsRow(
+                "repeat",
+                strings.lockTimeoutTitle,
+                timeoutLabel,
+                onClick = { dialog = "lock_timeout" }
+            )
+        }
     }
 
-    // Data Ownership Card
+    // Versioning & About Card
+    val appVersionName = remember {
+        runCatching {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0)).versionName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            }
+        }.getOrNull() ?: "1.0"
+    }
+
     AppCard(color = Lavender) {
-        Text(strings.yourDataYourOwnership, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Purple)
-        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconTile("wallet", Purple, 42)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Costly Finance", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Purple)
+                Text(strings.appVersionLabel(appVersionName), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
         Text(strings.dataOwnershipDesc, fontSize = 12.sp, color = Muted)
         Spacer(Modifier.height(8.dp))
-        Text(strings.appVersionNote, fontSize = 10.sp, color = Purple)
+        Text(strings.yourDataYourOwnership, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Purple)
+    }
+
+    if (dialog == "theme") {
+        val currentTheme = settings["theme_mode"] ?: "system"
+        AlertDialog(
+            onDismissRequest = { dialog = "" },
+            title = { Text(strings.themeModeTitle) },
+            text = {
+                Column {
+                    listOf(
+                        "system" to strings.themeSystem,
+                        "light" to strings.themeLight,
+                        "dark" to strings.themeDark
+                    ).forEach { (code, label) ->
+                        TextButton(
+                            onClick = {
+                                vm.setting("theme_mode", code)
+                                dialog = ""
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    label,
+                                    modifier = Modifier.weight(1f),
+                                    fontWeight = if (code == currentTheme) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (code == currentTheme) Purple else Ink
+                                )
+                                if (code == currentTheme) {
+                                    Glyph("check", Modifier.size(18.dp), Purple)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ dialog = "" }) { Text(strings.close) } }
+        )
+    }
+
+    if (dialog == "lock_timeout") {
+        val currentTimeout = settings["lock_timeout"] ?: "60"
+        AlertDialog(
+            onDismissRequest = { dialog = "" },
+            title = { Text(strings.lockTimeoutTitle) },
+            text = {
+                Column {
+                    listOf(
+                        "0" to strings.lockImmediately,
+                        "30" to strings.lockAfter30s,
+                        "60" to strings.lockAfter1m,
+                        "300" to strings.lockAfter5m
+                    ).forEach { (sec, label) ->
+                        TextButton(
+                            onClick = {
+                                vm.setting("lock_timeout", sec)
+                                dialog = ""
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    label,
+                                    modifier = Modifier.weight(1f),
+                                    fontWeight = if (sec == currentTimeout) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (sec == currentTimeout) Purple else Ink
+                                )
+                                if (sec == currentTimeout) {
+                                    Glyph("check", Modifier.size(18.dp), Purple)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ dialog = "" }) { Text(strings.close) } }
+        )
     }
 
     if (dialog == "language") {

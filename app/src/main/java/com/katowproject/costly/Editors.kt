@@ -58,7 +58,7 @@ fun EntryEditor(vm: FinanceViewModel, entry: Entry?, onClose: () -> Unit, modifi
                     prefix = { Text(currency.symbol, fontSize = 24.sp, color = Purple) }, placeholder = { Text("0", fontSize = 28.sp) },
                     textStyle = LocalTextStyle.current.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold), singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.Transparent, focusedBorderColor = Purple, unfocusedContainerColor = Color.White)
+                    shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.Transparent, focusedBorderColor = Purple, unfocusedContainerColor = CardBg)
                 )
                 if (amount.isNotEmpty()) Text(currency.format(amount.toLongOrNull() ?: 0, strings.language), fontSize = 11.sp, color = Muted, modifier = Modifier.padding(top = 8.dp))
             }

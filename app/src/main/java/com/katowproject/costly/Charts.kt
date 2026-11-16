@@ -28,12 +28,13 @@ fun CategoryDonut(data: FinanceData, month: YearMonth) {
     val strings = LocalStrings.current
     val total = data.total("EXPENSE", month)
     val parts = categoryTotals(data, month)
+    val emptyColor = Line
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         Box(Modifier.size(140.dp), contentAlignment = Alignment.Center) {
             Canvas(Modifier.size(136.dp)) {
                 val thickness = 20.dp.toPx()
                 val inset = thickness / 2
-                if (total == 0L) drawArc(Line, 0f, 360f, false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
+                if (total == 0L) drawArc(emptyColor, 0f, 360f, false, Offset(inset, inset), Size(size.width - thickness, size.height - thickness), style = Stroke(thickness))
                 else {
                     var start = -90f
                     parts.forEach { (category, amount) ->
@@ -69,8 +70,11 @@ fun CashFlowChart(data: FinanceData, month: YearMonth) {
     val maximum = maxOf(income.maxOrNull() ?: 0f, expense.maxOrNull() ?: 0f, 1f) * 1.15f
     val millionUnit = if (strings.lang == AppLanguage.EN) "M" else "jt"
     val thousandUnit = if (strings.lang == AppLanguage.EN) "k" else "rb"
+    val gridColor = Line
+    val incomeColor = Green
+    val expenseColor = Red
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        listOf(strings.income to Green, strings.expense to Red).forEach { (name, color) ->
+        listOf(strings.income to incomeColor, strings.expense to expenseColor).forEach { (name, color) ->
             Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(6.dp).background(color, CircleShape)); Spacer(Modifier.width(5.dp)); Text(name, fontSize = 9.sp, color = Muted)
             }
@@ -85,8 +89,8 @@ fun CashFlowChart(data: FinanceData, month: YearMonth) {
             }
         }
         Canvas(Modifier.weight(1f).fillMaxHeight().padding(vertical = 5.dp)) {
-            (0..4).forEach { row -> val y = size.height * row / 4; drawLine(Line, Offset(0f, y), Offset(size.width, y), 1.dp.toPx()) }
-            listOf(income to Green, expense to Red).forEach { (values, color) ->
+            (0..4).forEach { row -> val y = size.height * row / 4; drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx()) }
+            listOf(income to incomeColor, expense to expenseColor).forEach { (values, color) ->
                 val path = Path()
                 values.forEachIndexed { index, value -> val x = size.width * index / (values.size - 1); val y = size.height * (1 - value / maximum); if (index == 0) path.moveTo(x, y) else path.lineTo(x, y) }
                 val fill = Path().apply { addPath(path); lineTo(size.width, size.height); lineTo(0f, size.height); close() }

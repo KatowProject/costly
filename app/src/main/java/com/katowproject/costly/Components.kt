@@ -25,8 +25,9 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 @Composable
-fun AppCard(modifier: Modifier = Modifier, color: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.clip(RoundedCornerShape(20.dp)).background(color).border(1.dp, Line, RoundedCornerShape(20.dp)).padding(18.dp), content = content)
+fun AppCard(modifier: Modifier = Modifier, color: Color = Color.Unspecified, content: @Composable ColumnScope.() -> Unit) {
+    val containerColor = if (color != Color.Unspecified) color else CardBg
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(containerColor).border(1.dp, Line, RoundedCornerShape(20.dp)).padding(18.dp), content = content)
 }
 @Composable
 fun Heading(title: String, action: String? = null, onAction: () -> Unit = {}) {
@@ -94,9 +95,9 @@ fun DateField(label: String, date: LocalDate, onDate: (LocalDate) -> Unit) {
 }
 @Composable
 fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(Color(0xFFF1EEF7)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(Line).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         options.forEachIndexed { i, text ->
-            Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (i == selected) Color.White else Color.Transparent).clickable { onSelect(i) }.padding(vertical = 11.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (i == selected) CardBg else Color.Transparent).clickable { onSelect(i) }.padding(vertical = 11.dp), contentAlignment = Alignment.Center) {
                 Text(text, color = if (i == selected) Purple else Muted, fontSize = 12.sp, fontWeight = if (i == selected) FontWeight.Bold else FontWeight.Medium)
             }
         }
@@ -106,7 +107,7 @@ fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
 fun MonthChip(month: YearMonth, onMonth: (YearMonth) -> Unit) {
     val strings = LocalStrings.current
     var open by remember { mutableStateOf(false) }
-    Surface(onClick = { open = true }, shape = RoundedCornerShape(20.dp), color = Color.White, border = BorderStroke(1.dp, Line)) {
+    Surface(onClick = { open = true }, shape = RoundedCornerShape(20.dp), color = CardBg, border = BorderStroke(1.dp, Line)) {
         Row(Modifier.padding(horizontal = 13.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) { Glyph("calendar", Modifier.size(14.dp), tint = Purple); Spacer(Modifier.width(7.dp)); Text(localizedMonthLabel(month, strings.lang), fontSize = 12.sp, fontWeight = FontWeight.Medium); Spacer(Modifier.width(7.dp)); Glyph("down", Modifier.size(12.dp), tint = Muted) }
     }
     if (open) {

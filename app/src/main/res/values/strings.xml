@@ -334,4 +334,20 @@
     <string name="last_gdrive_backup_label">Backup Drive terakhir: %1$s</string>
     <string name="auto_gdrive_backup_error_label">Kesalahan backup Drive: %1$s</string>
     <string name="confirm_disconnect_gdrive">Putuskan akun Google Drive?</string>
+    <string name="theme_mode_title">Mode Tema</string>
+    <string name="theme_mode_sub">Pilih tema terang, gelap, atau ikuti sistem</string>
+    <string name="theme_system">Ikuti Sistem</string>
+    <string name="theme_light">Mode Terang</string>
+    <string name="theme_dark">Mode Gelap</string>
+    <string name="lock_timeout_title">Waktu Kunci Otomatis</string>
+    <string name="lock_timeout_sub">Kunci aplikasi setelah berada di latar belakang</string>
+    <string name="lock_immediately">Langsung saat keluar</string>
+    <string name="lock_after_30s">Setelah 30 detik</string>
+    <string name="lock_after_1m">Setelah 1 menit (Disarankan)</string>
+    <string name="lock_after_5m">Setelah 5 menit</string>
+    <string name="last_backup_success">Terakhir berhasil: %1$s</string>
+    <string name="never_backed_up">Belum pernah dicadangkan</string>
+    <string name="last_cloud_sync_success">Terakhir sinkron: %1$s</string>
+    <string name="never_cloud_synced">Belum pernah disinkronkan</string>
+    <string name="app_version_label">Versi %1$s</string>
 </resources>

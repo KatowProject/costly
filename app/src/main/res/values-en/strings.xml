@@ -334,4 +334,20 @@
     <string name="last_gdrive_backup_label">Last Drive backup: %1$s</string>
     <string name="auto_gdrive_backup_error_label">Drive backup error: %1$s</string>
     <string name="confirm_disconnect_gdrive">Disconnect Google Drive account?</string>
+    <string name="theme_mode_title">Theme Mode</string>
+    <string name="theme_mode_sub">Choose light, dark, or follow system theme</string>
+    <string name="theme_system">Follow System</string>
+    <string name="theme_light">Light Mode</string>
+    <string name="theme_dark">Dark Mode</string>
+    <string name="lock_timeout_title">Auto-Lock Timeout</string>
+    <string name="lock_timeout_sub">Lock app after being in the background</string>
+    <string name="lock_immediately">Immediately upon exit</string>
+    <string name="lock_after_30s">After 30 seconds</string>
+    <string name="lock_after_1m">After 1 minute (Recommended)</string>
+    <string name="lock_after_5m">After 5 minutes</string>
+    <string name="last_backup_success">Last successful: %1$s</string>
+    <string name="never_backed_up">Never backed up</string>
+    <string name="last_cloud_sync_success">Last synced: %1$s</string>
+    <string name="never_cloud_synced">Never synced</string>
+    <string name="app_version_label">Version %1$s</string>
 </resources>

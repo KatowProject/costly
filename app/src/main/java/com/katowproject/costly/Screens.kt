@@ -37,7 +37,7 @@ fun ColumnScope.TransactionsScreen(data: FinanceData, month: YearMonth, onMonth:
             placeholder = { Text(strings.searchPlaceholder, fontSize = 13.sp) },
             leadingIcon = { Glyph("search", Modifier.size(19.dp), Muted) },
             singleLine = true, shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Line, unfocusedContainerColor = Color.White)
+            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Line, unfocusedContainerColor = CardBg)
         )
         Box {
             FilledTonalIconButton({ filterOpen = true }, Modifier.size(48.dp)) { Glyph("filter", tint = Purple, description = strings.filterWalletDesc) }

@@ -14,12 +14,20 @@ import com.katowproject.costly.ui.theme.CostlyTheme
 class MainActivity : ComponentActivity() {
     private val model by lazy { ViewModelProvider(this)[FinanceViewModel::class.java] }
     private var locked by mutableStateOf(true)
+    private var lastBackgroundTime = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val viewModel = model
         setContent {
-            CostlyTheme {
+            val themeMode = viewModel.data.settings["theme_mode"] ?: "system"
+            val isDark = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            CostlyTheme(darkTheme = isDark) {
                 val context = androidx.compose.ui.platform.LocalContext.current
                 val currentStrings = remember(viewModel.data.settings["language"]) {
                     LocalizationManager.getStrings(context, viewModel.data.settings["language"])
@@ -39,7 +47,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    override fun onStop() { super.onStop(); locked = true }
+
+    override fun onStart() {
+        super.onStart()
+        if (model.data.settings["app_lock"] == "true") {
+            val timeoutSeconds = model.data.settings["lock_timeout"]?.toLongOrNull() ?: 60L
+            val elapsed = System.currentTimeMillis() - lastBackgroundTime
+            if (lastBackgroundTime > 0L && elapsed > timeoutSeconds * 1000L) {
+                locked = true
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        lastBackgroundTime = System.currentTimeMillis()
+    }
     private fun authenticate(strings: AppStrings) {
         BiometricPrompt.Builder(this)
             .setTitle(strings.biometricTitle)
