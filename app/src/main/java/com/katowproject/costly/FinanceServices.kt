@@ -224,6 +224,19 @@ object BackupService {
                 store.setting("gdrive_backup_error", it.message?.take(160) ?: "Backup Google Drive gagal")
             }
         }
+
+        if (settings["onedrive_backup_enabled"] == "true" && OneDriveService.isConnected(context)) {
+            runCatching {
+                kotlinx.coroutines.runBlocking {
+                    OneDriveService.uploadBackup(context, fileName, bytes)
+                    OneDriveService.pruneOldBackups(context, retention)
+                }
+                store.setting("last_onedrive_backup", java.time.LocalDateTime.now().toString())
+                store.setting("onedrive_backup_error", "")
+            }.onFailure {
+                store.setting("onedrive_backup_error", it.message?.take(160) ?: "Backup OneDrive gagal")
+            }
+        }
     }
     suspend fun backupToGoogleDrive(context: Context, store: FinanceStore): String {
         val password = password(context) ?: error("Atur kata sandi backup terlebih dahulu")
@@ -238,6 +251,21 @@ object BackupService {
     }
     suspend fun restoreFromGoogleDrive(context: Context, store: FinanceStore, fileId: String, password: String) {
         val bytes = GoogleDriveService.downloadBackup(context, fileId)
+        restore(store, bytes, password)
+    }
+    suspend fun backupToOneDrive(context: Context, store: FinanceStore): String {
+        val password = password(context) ?: error("Atur kata sandi backup terlebih dahulu")
+        val bytes = create(store, password)
+        val retention = store.read().settings["backup_retention"]?.toIntOrNull()?.coerceIn(1, 30) ?: 7
+        val fileName = "Costly-${System.currentTimeMillis()}.costly"
+        OneDriveService.uploadBackup(context, fileName, bytes)
+        OneDriveService.pruneOldBackups(context, retention)
+        store.setting("last_onedrive_backup", java.time.LocalDateTime.now().toString())
+        store.setting("onedrive_backup_error", "")
+        return fileName
+    }
+    suspend fun restoreFromOneDrive(context: Context, store: FinanceStore, fileId: String, password: String) {
+        val bytes = OneDriveService.downloadBackup(context, fileId)
         restore(store, bytes, password)
     }
 }

@@ -350,4 +350,20 @@
     <string name="last_cloud_sync_success">Terakhir sinkron: %1$s</string>
     <string name="never_cloud_synced">Belum pernah disinkronkan</string>
     <string name="app_version_label">Versi %1$s</string>
+    <string name="onedrive_title">Backup Cloud Microsoft OneDrive</string>
+    <string name="onedrive_desc">Simpan salinan cadangan terenkripsi otomatis ke akun Microsoft OneDrive Anda.</string>
+    <string name="connect_onedrive">Hubungkan Microsoft OneDrive</string>
+    <string name="disconnect_onedrive">Putuskan Akun</string>
+    <string name="onedrive_sync_auto">Sinkronisasi Otomatis ke OneDrive</string>
+    <string name="onedrive_sync_auto_sub">Unggah backup setiap kali jadwal backup berjalan.</string>
+    <string name="backup_to_onedrive_now">Backup ke OneDrive Sekarang</string>
+    <string name="backup_to_onedrive_now_sub">Unggah salinan data terenkripsi terbaru ke OneDrive.</string>
+    <string name="restore_from_onedrive">Restore dari Microsoft OneDrive</string>
+    <string name="restore_from_onedrive_sub">Pilih dan pulihkan file cadangan dari cloud.</string>
+    <string name="select_onedrive_backup_title">Pilih Backup dari OneDrive</string>
+    <string name="no_onedrive_backups">Belum ada file backup di OneDrive</string>
+    <string name="fetching_onedrive_backups">Memuat file backup dari OneDrive…</string>
+    <string name="onedrive_backup_success">Berhasil diunggah ke Microsoft OneDrive</string>
+    <string name="auto_onedrive_backup_error_label">Kesalahan backup OneDrive: %1$s</string>
+    <string name="confirm_disconnect_onedrive">Putuskan akun Microsoft OneDrive?</string>
 </resources>

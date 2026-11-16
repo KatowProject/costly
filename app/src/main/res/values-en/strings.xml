@@ -350,4 +350,20 @@
     <string name="last_cloud_sync_success">Last synced: %1$s</string>
     <string name="never_cloud_synced">Never synced</string>
     <string name="app_version_label">Version %1$s</string>
+    <string name="onedrive_title">Microsoft OneDrive Cloud Backup</string>
+    <string name="onedrive_desc">Automatically save encrypted backups to your Microsoft OneDrive account.</string>
+    <string name="connect_onedrive">Connect Microsoft OneDrive</string>
+    <string name="disconnect_onedrive">Disconnect Account</string>
+    <string name="onedrive_sync_auto">Auto-sync to OneDrive</string>
+    <string name="onedrive_sync_auto_sub">Upload backup every time backup schedule runs.</string>
+    <string name="backup_to_onedrive_now">Backup to OneDrive Now</string>
+    <string name="backup_to_onedrive_now_sub">Upload latest encrypted backup to OneDrive.</string>
+    <string name="restore_from_onedrive">Restore from Microsoft OneDrive</string>
+    <string name="restore_from_onedrive_sub">Select and restore backup file from cloud.</string>
+    <string name="select_onedrive_backup_title">Select Backup from OneDrive</string>
+    <string name="no_onedrive_backups">No backup files in OneDrive</string>
+    <string name="fetching_onedrive_backups">Loading backup files from OneDrive…</string>
+    <string name="onedrive_backup_success">Successfully uploaded to Microsoft OneDrive</string>
+    <string name="auto_onedrive_backup_error_label">OneDrive backup error: %1$s</string>
+    <string name="confirm_disconnect_onedrive">Disconnect Microsoft OneDrive account?</string>
 </resources>

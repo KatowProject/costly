@@ -41,6 +41,9 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
     var gdriveBackups by remember { mutableStateOf<List<DriveBackup>>(emptyList()) }
     var selectedDriveBackup by remember { mutableStateOf<DriveBackup?>(null) }
     var fetchingGdrive by remember { mutableStateOf(false) }
+    var onedriveBackups by remember { mutableStateOf<List<OneDriveBackup>>(emptyList()) }
+    var selectedOneDriveBackup by remember { mutableStateOf<OneDriveBackup?>(null) }
+    var fetchingOneDrive by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -278,6 +281,119 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
                             dialog = ""
                         }
                         fetchingGdrive = false
+                    }
+                }
+            )
+        }
+    }
+
+    // Microsoft OneDrive Cloud Backup Card
+    val isOneDriveConnected = OneDriveService.isConnected(context)
+    val oneDriveEmail = OneDriveService.getConnectedEmail(context) ?: OneDriveService.getConnectedName(context)
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Glyph("cloud", Modifier.size(21.dp), Purple)
+            Spacer(Modifier.width(10.dp))
+            Text(strings.onedriveTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(strings.onedriveDesc, fontSize = 12.sp, color = Muted)
+        Spacer(Modifier.height(10.dp))
+
+        val lastOneDrive = settings["last_onedrive_backup"]?.let {
+            runCatching {
+                val date = java.time.LocalDateTime.parse(it)
+                "${localizedDateLabel(date.toLocalDate(), strings.lang)}, ${date.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}"
+            }.getOrDefault(it)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (lastOneDrive != null) Purple.copy(alpha = 0.12f) else Muted.copy(alpha = 0.12f)).padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Glyph(if (lastOneDrive != null) "cloud" else "info", Modifier.size(15.dp), if (lastOneDrive != null) Purple else Muted)
+            Spacer(Modifier.width(8.dp))
+            Text(if (lastOneDrive != null) strings.lastCloudSyncSuccess(lastOneDrive) else strings.neverCloudSynced, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (lastOneDrive != null) Purple else Muted)
+        }
+        if (!settings["onedrive_backup_error"].isNullOrBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(strings.autoOnedriveBackupErrorLabel(settings["onedrive_backup_error"]!!), fontSize = 11.sp, color = Red)
+        }
+        Spacer(Modifier.height(12.dp))
+
+        if (!isOneDriveConnected) {
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(OneDriveService.createSignInIntent(context))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Glyph("cloud", Modifier.size(16.dp), Purple)
+                Spacer(Modifier.width(8.dp))
+                Text(strings.connectOnedrive, color = Purple)
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(strings.connectedAs(oneDriveEmail.orEmpty()), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                }
+                TextButton(onClick = { dialog = "confirm_disconnect_onedrive" }) {
+                    Text(strings.disconnectOnedrive, fontSize = 12.sp, color = Red)
+                }
+            }
+            HorizontalDivider(color = Line)
+            SettingsRow(
+                "repeat",
+                strings.onedriveSyncAuto,
+                strings.onedriveSyncAutoSub,
+                onClick = {
+                    val current = settings["onedrive_backup_enabled"] == "true"
+                    if (!current && BackupService.password(context) == null) dialog = "password"
+                    else vm.setting("onedrive_backup_enabled", if (current) "false" else "true")
+                },
+                trailing = {
+                    Switch(
+                        checked = settings["onedrive_backup_enabled"] == "true",
+                        onCheckedChange = { enabled ->
+                            if (enabled && BackupService.password(context) == null) dialog = "password"
+                            else vm.setting("onedrive_backup_enabled", if (enabled) "true" else "false")
+                        },
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+            )
+            HorizontalDivider(color = Line)
+            SettingsRow(
+                "cloud",
+                strings.backupToOnedriveNow,
+                strings.backupToOnedriveNowSub,
+                onClick = {
+                    if (BackupService.password(context) == null) dialog = "password"
+                    else {
+                        scope.launch {
+                            vm.action(strings.onedriveBackupSuccess) {
+                                BackupService.backupToOneDrive(context, vm.store)
+                            }
+                        }
+                    }
+                }
+            )
+            HorizontalDivider(color = Line)
+            SettingsRow(
+                "download",
+                strings.restoreFromOnedrive,
+                strings.restoreFromOnedriveSub,
+                onClick = {
+                    fetchingOneDrive = true
+                    dialog = "onedrive_restore"
+                    scope.launch {
+                        runCatching {
+                            onedriveBackups = OneDriveService.listBackups(context)
+                        }.onFailure {
+                            vm.message = it.message ?: "Gagal membaca OneDrive"
+                            dialog = ""
+                        }
+                        fetchingOneDrive = false
                     }
                 }
             )
@@ -605,6 +721,84 @@ fun ColumnScope.SettingsScreen(vm: FinanceViewModel, back: () -> Unit) {
                             dialog = ""
                         }
                     }
+                }) { Text(strings.delete, color = Red) }
+            },
+            dismissButton = { TextButton({ dialog = "" }) { Text(strings.cancel) } }
+        )
+    }
+
+    if (dialog == "onedrive_restore") {
+        AlertDialog(
+            onDismissRequest = { dialog = "" },
+            title = { Text(strings.selectOnedriveBackupTitle) },
+            text = {
+                if (fetchingOneDrive) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Purple)
+                        Spacer(Modifier.width(12.dp))
+                        Text(strings.fetchingOnedriveBackups)
+                    }
+                } else if (onedriveBackups.isEmpty()) {
+                    Text(strings.noOnedriveBackups, color = Muted)
+                } else {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        onedriveBackups.forEach { backup ->
+                            TextButton(
+                                onClick = {
+                                    selectedOneDriveBackup = backup
+                                    dialog = "restore_onedrive_password"
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                                    Text(backup.name, fontWeight = FontWeight.SemiBold, color = Ink, fontSize = 13.sp)
+                                    val sizeText = if (backup.size > 0) "${backup.size / 1024} KB" else ""
+                                    Text("${backup.modifiedTime.take(16).replace('T', ' ')}  $sizeText", fontSize = 11.sp, color = Muted)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ dialog = "" }) { Text(strings.cancel) } }
+        )
+    }
+
+    if (dialog == "restore_onedrive_password") {
+        var password by remember { mutableStateOf("") }
+        FormDialog(
+            strings.restoreBackup,
+            { dialog = "" },
+            password.length >= 8,
+            vm.busy,
+            {
+                val backup = selectedOneDriveBackup ?: return@FormDialog
+                scope.launch {
+                    vm.action(strings.restoreSuccess, onSuccess = { dialog = "" }) {
+                        BackupService.restoreFromOneDrive(context, vm.store, backup.id, password)
+                    }
+                }
+            }
+        ) {
+            Text(strings.restoreWarning, fontSize = 12.sp, color = Red)
+            Spacer(Modifier.height(8.dp))
+            Text(selectedOneDriveBackup?.name.orEmpty(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Field(strings.backupPassword, password, { password = it }, password = true)
+        }
+    }
+
+    if (dialog == "confirm_disconnect_onedrive") {
+        AlertDialog(
+            onDismissRequest = { dialog = "" },
+            title = { Text(strings.disconnectOnedrive) },
+            text = { Text(strings.confirmDisconnectOnedrive) },
+            confirmButton = {
+                TextButton({
+                    OneDriveService.signOut(context)
+                    vm.setting("onedrive_backup_enabled", "false")
+                    vm.setting("onedrive_connected", "false")
+                    dialog = ""
                 }) { Text(strings.delete, color = Red) }
             },
             dismissButton = { TextButton({ dialog = "" }) { Text(strings.cancel) } }
