@@ -68,53 +68,27 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
     ) { padding ->
         if (!vm.ready) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple) }
+        } else if (showEntry) {
+            EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false }, Modifier.padding(padding))
         } else {
-            AnimatedContent(
-                targetState = showEntry,
-                transitionSpec = {
-                    if (targetState) {
-                        (slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(300))) togetherWith
-                            fadeOut(animationSpec = tween(200))
-                    } else {
-                        fadeIn(animationSpec = tween(250)) togetherWith
-                            (slideOutVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(200)))
-                    }
-                },
-                label = "entry_editor_transition"
-            ) { isEditing ->
-                if (isEditing) {
-                    EntryEditor(vm, data.entries.firstOrNull { it.id == editId }, { showEntry = false }, Modifier.padding(padding))
-                } else {
-                    Column(
-                        Modifier.fillMaxSize().padding(padding).widthIn(max = 680.dp).padding(horizontal = 22.dp)
-                            .verticalScroll(scrollState).padding(top = 16.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        AnimatedContent(
-                            targetState = screen,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(220)) + slideInHorizontally(animationSpec = tween(220)) { it / 16 }) togetherWith
-                                    (fadeOut(animationSpec = tween(180)) + slideOutHorizontally(animationSpec = tween(180)) { -it / 16 })
-                            },
-                            label = "tab_screen_transition"
-                        ) { currentScreen ->
-                            when (currentScreen) {
-                                "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
-                                "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
-                                "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
-                                "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
-                                "more" -> MoreScreen(data, { screen = it }, { dialog = "profile" })
-                                "settings" -> SettingsScreen(vm, { screen = "more" })
-                                "wallets" -> WalletsScreen(vm, { screen = "more" }, { dialog = "wallet" })
-                                "categories" -> CategoriesScreen(vm, { screen = "more" }, { dialog = "category" })
-                                "recurring" -> RecurringScreen(vm, { screen = "more" }, { dialog = "recurring" })
-                                "debts" -> DebtsScreen(vm, { screen = "more" }, { dialog = "debt" })
-                                else -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
-                            }
-                        }
-                        Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    }
+            Column(
+                Modifier.fillMaxSize().padding(padding).widthIn(max = 680.dp).padding(horizontal = 22.dp)
+                    .verticalScroll(scrollState).padding(top = 16.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                when (screen) {
+                    "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, { screen = it }, { dialog = it }, { editId = it.id; showEntry = true })
+                    "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
+                    "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
+                    "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
+                    "more" -> MoreScreen(data, { screen = it }, { dialog = "profile" })
+                    "settings" -> SettingsScreen(vm, { screen = "more" })
+                    "wallets" -> WalletsScreen(vm, { screen = "more" }, { dialog = "wallet" })
+                    "categories" -> CategoriesScreen(vm, { screen = "more" }, { dialog = "category" })
+                    "recurring" -> RecurringScreen(vm, { screen = "more" }, { dialog = "recurring" })
+                    "debts" -> DebtsScreen(vm, { screen = "more" }, { dialog = "debt" })
                 }
+                Text(strings.tagline, Modifier.fillMaxWidth().padding(top = 4.dp), fontSize = 9.sp, letterSpacing = 1.5.sp, color = Muted.copy(alpha = .65f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
     }
@@ -190,16 +164,7 @@ fun ColumnScope.Dashboard(data: FinanceData, month: YearMonth, onMonth: (YearMon
             Text(strings.totalBalance, color = Color.White.copy(alpha = .85f), fontSize = 13.sp, modifier = Modifier.weight(1f))
             IconButton({ hidden = !hidden }, Modifier.size(30.dp)) { Glyph("eye", Modifier.size(20.dp), Color.White, strings.toggleBalanceDesc) }
         }
-        AnimatedContent(
-            targetState = hidden,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(200)) + slideInVertically(animationSpec = tween(200)) { it / 4 }) togetherWith
-                    (fadeOut(animationSpec = tween(150)) + slideOutVertically(animationSpec = tween(150)) { -it / 4 })
-            },
-            label = "balance_toggle_anim"
-        ) { isHidden ->
-            Text(if (isHidden) "${currency.symbol} ••••••••" else currency.format(data.balance(), strings.language), color = Color.White, fontSize = 31.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, maxLines = 1)
-        }
+        Text(if (hidden) "${currency.symbol} ••••••••" else currency.format(data.balance(), strings.language), color = Color.White, fontSize = 31.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, maxLines = 1)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(strings.walletsConnected(data.wallets.size), color = Color.White.copy(alpha = .7f), fontSize = 11.sp, modifier = Modifier.weight(1f))
             Text("COSTLY", color = Color.White.copy(alpha = .65f), fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
