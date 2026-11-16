@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Costly: Build & Run Android",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/android.ps1 -Action BuildRun",
+            "cwd": "${workspaceFolder}",
+            "presentation": {
+                "group": "Costly",
+                "order": 1
+            }
+        },
+        {
+            "name": "Costly: Run APK yang tersedia",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/android.ps1 -Action Run",
+            "cwd": "${workspaceFolder}",
+            "presentation": {
+                "group": "Costly",
+                "order": 2
+            }
+        },
+        {
+            "name": "Costly: Buka emulator",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/android.ps1 -Action Start",
+            "cwd": "${workspaceFolder}",
+            "presentation": {
+                "group": "Costly",
+                "order": 3
+            }
+        }
+    ]
+}

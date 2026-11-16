@@ -1,0 +1,44 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Costly: Build & Run Android",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/android.ps1", "-Action", "BuildRun"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": [],
+            "runOptions": { "instanceLimit": 1 }
+        },
+        {
+            "label": "Costly: Build APK",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/android.ps1", "-Action", "Build"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Costly: Run APK yang tersedia",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/android.ps1", "-Action", "Run"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Costly: Buka emulator",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/android.ps1", "-Action", "Start"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        }
+    ]
+}
