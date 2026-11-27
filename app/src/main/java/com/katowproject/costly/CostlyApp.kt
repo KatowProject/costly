@@ -18,10 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.katowproject.costly.ui.theme.*
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 
 @Composable
@@ -53,6 +55,75 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
     var goal by remember { mutableStateOf<Goal?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val data = vm.data
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val currentVersion = remember { UpdateService.currentVersionName(context) }
+    var availableUpdate by remember { mutableStateOf(UpdateService.getCachedUpdate(context, currentVersion)) }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(vm.ready) {
+        if (!vm.ready) return@LaunchedEffect
+        val cached = availableUpdate
+        if (cached != null && UpdateService.shouldShowAutoPrompt(context, cached)) {
+            showUpdateDialog = true
+        }
+        if (UpdateService.shouldAutoCheck(context)) {
+            UpdateService.checkLatestRelease(currentVersion).onSuccess { outcome ->
+                UpdateService.recordCheck(context)
+                when (outcome) {
+                    is UpdateCheckOutcome.UpdateAvailable -> {
+                        UpdateService.cacheAvailableUpdate(context, outcome.release)
+                        availableUpdate = outcome.release
+                        if (UpdateService.shouldShowAutoPrompt(context, outcome.release)) {
+                            showUpdateDialog = true
+                        }
+                    }
+                    UpdateCheckOutcome.UpToDate -> {
+                        UpdateService.cacheAvailableUpdate(context, null)
+                        availableUpdate = null
+                    }
+                    UpdateCheckOutcome.NoReleasesYet -> Unit
+                }
+            }
+        }
+    }
+
+    val checkForUpdates: () -> Unit = {
+        if (!checkingUpdate) {
+            checkingUpdate = true
+            scope.launch {
+                val res = UpdateService.checkLatestRelease(currentVersion)
+                checkingUpdate = false
+                res.fold(
+                    onSuccess = { outcome ->
+                        UpdateService.recordCheck(context)
+                        when (outcome) {
+                            is UpdateCheckOutcome.UpdateAvailable -> {
+                                UpdateService.cacheAvailableUpdate(context, outcome.release)
+                                availableUpdate = outcome.release
+                                showUpdateDialog = true
+                            }
+                            UpdateCheckOutcome.UpToDate -> {
+                                UpdateService.cacheAvailableUpdate(context, null)
+                                availableUpdate = null
+                                vm.message = strings.updateUpToDate(currentVersion)
+                            }
+                            UpdateCheckOutcome.NoReleasesYet -> {
+                                vm.message = strings.updateNoReleases
+                            }
+                        }
+                    },
+                    onFailure = { err ->
+                        vm.message = strings.updateCheckFailed(err.message ?: "")
+                    }
+                )
+            }
+        }
+    }
+
+    val visibleUpdateBadge = availableUpdate?.takeIf { !UpdateService.isVersionSkipped(context, it.cleanVersion) }
+
     LaunchedEffect(vm.message) { vm.message?.let { snackbar.showSnackbar(it); vm.message = null } }
     var previousScreen by rememberSaveable { mutableStateOf("home") }
     val navigateTo: (String) -> Unit = { target ->
@@ -75,7 +146,7 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
     Scaffold(
         containerColor = Page,
         snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = { if (!showEntry) BottomBar(screen, navigateTo, addEntry) }
+        bottomBar = { if (!showEntry) BottomBar(screen, navigateTo, addEntry, visibleUpdateBadge != null) }
     ) { padding ->
         if (!vm.ready) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple) }
@@ -126,9 +197,9 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
                         when (targetScreen) {
                             "home" -> Dashboard(data, month, { monthText = it.toString() }, addEntry, navigateTo, { dialog = it }, { editId = it.id; showEntry = true })
                             "transactions" -> TransactionsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
-                            "reports" -> ReportsScreen(data, month, { monthText = it.toString() })
+                            "reports" -> ReportsScreen(data, month, { monthText = it.toString() }, { editId = it.id; showEntry = true })
                             "budget" -> BudgetScreen(vm, month, { monthText = it.toString() }, { dialog = "budget" }, { dialog = "goal" }, { goal = it; dialog = "saving" })
-                            "more" -> MoreScreen(data, navigateTo, { dialog = "profile" })
+                            "more" -> MoreScreen(data, navigateTo, { dialog = "profile" }, visibleUpdateBadge, checkingUpdate, checkForUpdates)
                             "settings" -> SettingsScreen(vm, { navigateTo("more") })
                             "wallets" -> WalletsScreen(vm, { navigateTo("more") }, { dialog = "wallet" })
                             "categories" -> CategoriesScreen(vm, { navigateTo("more") }, { dialog = "category" })
@@ -154,10 +225,113 @@ private fun CostlyAppContent(vm: FinanceViewModel) {
         }
     }
     if (dialog.isNotEmpty()) EntityDialog(dialog, vm, month, goal, { dialog = "" })
+    val updateToShow = availableUpdate
+    if (showUpdateDialog && updateToShow != null) {
+        UpdateAvailableDialog(
+            release = updateToShow,
+            currentVersion = currentVersion,
+            onDownload = {
+                showUpdateDialog = false
+                UpdateService.openReleaseDownload(context, updateToShow)
+            },
+            onSnooze = { days ->
+                UpdateService.snoozeForDays(context, days)
+                showUpdateDialog = false
+                vm.message = strings.updateSnoozedMsg(days)
+            },
+            onSkip = {
+                UpdateService.skipVersion(context, updateToShow.cleanVersion)
+                showUpdateDialog = false
+                vm.message = strings.updateSkippedMsg(updateToShow.tagName)
+            },
+            onDismiss = { showUpdateDialog = false }
+        )
+    }
 }
 
 @Composable
-private fun BottomBar(screen: String, onScreen: (String) -> Unit, onAdd: () -> Unit) {
+private fun UpdateAvailableDialog(
+    release: AppReleaseInfo,
+    currentVersion: String,
+    onDownload: () -> Unit,
+    onSnooze: (Int) -> Unit,
+    onSkip: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val strings = LocalStrings.current
+    var showSnoozeOptions by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IconTile("download", Purple, 38)
+                Column {
+                    Text(strings.updateAvailableTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "v$currentVersion → ${release.tagName}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Purple
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Page)
+                        .border(1.dp, Line, RoundedCornerShape(12.dp))
+                        .verticalScroll(rememberScrollState())
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        release.notes.ifBlank { strings.updateDefaultNotes },
+                        fontSize = 12.sp,
+                        color = Ink,
+                        lineHeight = 18.sp
+                    )
+                }
+                if (showSnoozeOptions) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(strings.updateRemindLater, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Muted)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(1 to strings.updateRemind1Day, 3 to strings.updateRemind3Days, 7 to strings.updateRemind7Days).forEach { (days, label) ->
+                                OutlinedButton(
+                                    onClick = { onSnooze(days) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                ) {
+                                    Text(label, fontSize = 10.sp, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                PrimaryButton(strings.updateDownloadNow, "download", onClick = onDownload)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = { showSnoozeOptions = !showSnoozeOptions }) {
+                        Text(strings.updateRemindLater, fontSize = 12.sp, color = Purple)
+                    }
+                    TextButton(onClick = onSkip) {
+                        Text(strings.updateSkipVersion, fontSize = 12.sp, color = Muted)
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun BottomBar(screen: String, onScreen: (String) -> Unit, onAdd: () -> Unit, hasUpdate: Boolean = false) {
     val strings = LocalStrings.current
     Surface(color = CardBg, shadowElevation = 12.dp) {
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceAround) {
@@ -184,6 +358,9 @@ private fun BottomBar(screen: String, onScreen: (String) -> Unit, onAdd: () -> U
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable { onScreen(key) }.padding(vertical = 7.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Box(Modifier.clip(RoundedCornerShape(10.dp)).background(animBg).padding(horizontal = 13.dp, vertical = 4.dp)) {
                             Glyph(when(key) { "home" -> "home"; "transactions" -> "list"; "reports" -> "chart"; else -> "menu" }, Modifier.size(21.dp), tint = animColor)
+                            if (key == "more" && hasUpdate) {
+                                Box(Modifier.align(Alignment.TopEnd).size(7.dp).clip(CircleShape).background(Red))
+                            }
                         }
                         Text(label, fontSize = 10.sp, color = animColor, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
                     }

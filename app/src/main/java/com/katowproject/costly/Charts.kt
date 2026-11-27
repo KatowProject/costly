@@ -5,14 +5,17 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -29,7 +32,7 @@ import java.time.YearMonth
 fun categoryTotals(data: FinanceData, month: YearMonth): List<Pair<Category, Long>> = data.categories.filter { it.type == "EXPENSE" }.map { it to data.spent(it.id, month) }.filter { it.second > 0 }.sortedByDescending { it.second }
 
 @Composable
-fun CategoryDonut(data: FinanceData, month: YearMonth) {
+fun CategoryDonut(data: FinanceData, month: YearMonth, onCategory: ((Category) -> Unit)? = null) {
     val strings = LocalStrings.current
     val total = data.total("EXPENSE", month)
     val parts = categoryTotals(data, month)
@@ -61,9 +64,14 @@ fun CategoryDonut(data: FinanceData, month: YearMonth) {
                 Text(formatRupiah(total, strings.lang), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             (if (parts.isEmpty()) data.categories.filter { it.type == "EXPENSE" }.take(4).map { it to 0L } else parts.take(5)).forEach { (category, amount) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                val clickableMod = if (onCategory != null && amount > 0) {
+                    Modifier.clip(RoundedCornerShape(8.dp)).clickable { onCategory(category) }.padding(vertical = 3.dp, horizontal = 4.dp)
+                } else {
+                    Modifier.padding(vertical = 3.dp)
+                }
+                Row(clickableMod, verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(7.dp).background(Color(category.color), CircleShape)); Spacer(Modifier.width(6.dp))
                     Text(localizedCategoryName(category.name, strings.lang), Modifier.weight(1f), fontSize = 10.sp, maxLines = 1)
                     Text(if (total == 0L) "0%" else "${amount * 100 / total}%", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)

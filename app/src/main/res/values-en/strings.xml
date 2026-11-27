@@ -366,4 +366,24 @@
     <string name="onedrive_backup_success">Successfully uploaded to Microsoft OneDrive</string>
     <string name="auto_onedrive_backup_error_label">OneDrive backup error: %1$s</string>
     <string name="confirm_disconnect_onedrive">Disconnect Microsoft OneDrive account?</string>
+    <string name="category_transactions_summary">%1$d transactions · %2$s (%3$d%%)</string>
+    <string name="tap_category_for_details">Tap a category to view its transactions</string>
+    <string name="check_for_update_title">Check for updates</string>
+    <string name="checking_for_updates">Checking for updates…</string>
+    <string name="current_version_detail">Installed version: %1$s</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_badge">New version available: %1$s</string>
+    <string name="update_badge_new">New</string>
+    <string name="update_download_now">Download update</string>
+    <string name="update_remind_later">Remind me later</string>
+    <string name="update_remind_1_day">Tomorrow (1 day)</string>
+    <string name="update_remind_3_days">In 3 days</string>
+    <string name="update_remind_7_days">In 7 days</string>
+    <string name="update_skip_version">Skip this version</string>
+    <string name="update_up_to_date">You are on the latest version (%1$s)</string>
+    <string name="update_no_releases">No releases published on GitHub yet</string>
+    <string name="update_check_failed">Failed to check for updates: %1$s</string>
+    <string name="update_snoozed_msg">We will remind you again in %1$d days</string>
+    <string name="update_skipped_msg">Version %1$s skipped</string>
+    <string name="update_default_notes">A new release is available on GitHub Releases with improvements and fixes.</string>
 </resources>

@@ -366,4 +366,24 @@
     <string name="onedrive_backup_success">Berhasil diunggah ke Microsoft OneDrive</string>
     <string name="auto_onedrive_backup_error_label">Kesalahan backup OneDrive: %1$s</string>
     <string name="confirm_disconnect_onedrive">Putuskan akun Microsoft OneDrive?</string>
+    <string name="category_transactions_summary">%1$d transaksi · %2$s (%3$d%%)</string>
+    <string name="tap_category_for_details">Ketuk kategori untuk melihat daftar transaksi</string>
+    <string name="check_for_update_title">Periksa pembaruan</string>
+    <string name="checking_for_updates">Memeriksa pembaruan…</string>
+    <string name="current_version_detail">Versi terpasang: %1$s</string>
+    <string name="update_available_title">Pembaruan tersedia</string>
+    <string name="update_available_badge">Versi baru tersedia: %1$s</string>
+    <string name="update_badge_new">Baru</string>
+    <string name="update_download_now">Unduh pembaruan</string>
+    <string name="update_remind_later">Ingatkan nanti</string>
+    <string name="update_remind_1_day">Besok (1 hari)</string>
+    <string name="update_remind_3_days">3 hari lagi</string>
+    <string name="update_remind_7_days">7 hari lagi</string>
+    <string name="update_skip_version">Lewati versi ini</string>
+    <string name="update_up_to_date">Aplikasi sudah versi terbaru (%1$s)</string>
+    <string name="update_no_releases">Belum ada rilis tersedia di GitHub</string>
+    <string name="update_check_failed">Gagal memeriksa pembaruan: %1$s</string>
+    <string name="update_snoozed_msg">Pembaruan akan diingatkan %1$d hari lagi</string>
+    <string name="update_skipped_msg">Versi %1$s dilewati</string>
+    <string name="update_default_notes">Versi terbaru tersedia di GitHub Releases dengan perbaikan dan peningkatan performa.</string>
 </resources>

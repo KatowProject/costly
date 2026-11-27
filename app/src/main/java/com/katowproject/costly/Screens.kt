@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -81,10 +82,11 @@ fun ColumnScope.TransactionsScreen(data: FinanceData, month: YearMonth, onMonth:
 }
 
 @Composable
-fun ColumnScope.ReportsScreen(data: FinanceData, month: YearMonth, onMonth: (YearMonth) -> Unit) {
+fun ColumnScope.ReportsScreen(data: FinanceData, month: YearMonth, onMonth: (YearMonth) -> Unit, onEntry: (Entry) -> Unit = {}) {
     val strings = LocalStrings.current
     val currency = LocalCurrency.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf("") }
@@ -144,23 +146,36 @@ fun ColumnScope.ReportsScreen(data: FinanceData, month: YearMonth, onMonth: (Yea
     if (tab != 2) AppCard {
         Heading(if (tab == 1) strings.expenseDistribution else strings.topExpenseCategories)
         Spacer(Modifier.height(18.dp))
-        if (tab == 1) { CategoryDonut(data, month); Spacer(Modifier.height(22.dp)) }
+        if (tab == 1) { CategoryDonut(data, month) { selectedCategory = it }; Spacer(Modifier.height(22.dp)) }
         val categories = categoryTotals(data, month)
         val total = data.total("EXPENSE", month)
         if (categories.isEmpty()) EmptyState(strings.noExpense, strings.noExpenseSub, "chart")
-        (if (tab == 1) categories else categories.take(4)).forEach { (category, amount) ->
-            Row(Modifier.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconTile(category.icon, Color(category.color), 36); Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row {
-                        Text(strings.categoryName(category.name), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text(currency.format(amount, strings.language), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(8.dp))
-                        Text("${amount * 100 / total}%", fontSize = 10.sp, color = Muted)
+        else {
+            (if (tab == 1) categories else categories.take(4)).forEach { (category, amount) ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { selectedCategory = category }
+                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconTile(category.icon, Color(category.color), 36); Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(strings.categoryName(category.name), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(currency.format(amount, strings.language), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("${amount * 100 / total}%", fontSize = 10.sp, color = Muted)
+                            Spacer(Modifier.width(4.dp))
+                            Glyph("chevron", Modifier.size(13.dp), tint = Muted)
+                        }
+                        ProgressBar(amount.toFloat() / total, Color(category.color))
                     }
-                    ProgressBar(amount.toFloat() / total, Color(category.color))
                 }
             }
+            Spacer(Modifier.height(4.dp))
+            Text(strings.tapCategoryForDetails, fontSize = 10.sp, color = Muted)
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -175,6 +190,68 @@ fun ColumnScope.ReportsScreen(data: FinanceData, month: YearMonth, onMonth: (Yea
         }
     }
     if (status.isNotBlank()) Text(status, fontSize = 12.sp, color = Purple)
+    selectedCategory?.let { category ->
+        val catEntries = data.monthly(month).filter { it.type == "EXPENSE" && it.categoryId == category.id }
+        val catTotal = catEntries.sumOf { it.amount }
+        val monthTotal = data.total("EXPENSE", month)
+        val percent = if (monthTotal > 0) (catTotal * 100 / monthTotal).toInt() else 0
+        AlertDialog(
+            onDismissRequest = { selectedCategory = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconTile(category.icon, Color(category.color), 40)
+                    Column(Modifier.weight(1f)) {
+                        Text(strings.categoryName(category.name), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            localizedMonthLabel(month, strings.lang),
+                            fontSize = 12.sp,
+                            color = Muted
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(category.color).copy(alpha = 0.1f))
+                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                    ) {
+                        Text(
+                            strings.categoryTransactionsSummary(
+                                catEntries.size,
+                                currency.format(catTotal, strings.language),
+                                percent
+                            ),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Ink
+                        )
+                    }
+                    if (catEntries.isEmpty()) {
+                        Text(strings.noExpense, fontSize = 12.sp, color = Muted)
+                    } else {
+                        Column(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                            catEntries.forEachIndexed { index, entry ->
+                                if (index > 0) HorizontalDivider(color = Line)
+                                TransactionRow(entry, data) {
+                                    selectedCategory = null
+                                    onEntry(entry)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedCategory = null }) {
+                    Text(strings.close)
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -242,8 +319,17 @@ fun ColumnScope.BudgetScreen(vm: FinanceViewModel, month: YearMonth, onMonth: (Y
 }
 
 @Composable
-fun ColumnScope.MoreScreen(data: FinanceData, navigate: (String) -> Unit, onProfile: () -> Unit) {
+fun ColumnScope.MoreScreen(
+    data: FinanceData,
+    navigate: (String) -> Unit,
+    onProfile: () -> Unit,
+    availableUpdate: AppReleaseInfo? = null,
+    checkingUpdate: Boolean = false,
+    onCheckUpdate: () -> Unit = {}
+) {
     val strings = LocalStrings.current
+    val context = LocalContext.current
+    val installedVersion = remember { UpdateService.currentVersionName(context) }
     ScreenTitle(strings.moreTitle, strings.moreSubtitle)
     AppCard(color = Lavender) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,6 +354,32 @@ fun ColumnScope.MoreScreen(data: FinanceData, navigate: (String) -> Unit, onProf
     }
     AppCard {
         SettingsRow("settings", strings.menuSettings, strings.menuSettingsSub, { navigate("settings") })
+        HorizontalDivider(color = Line)
+        val updateDetail = when {
+            checkingUpdate -> strings.checkingForUpdates
+            availableUpdate != null -> strings.updateAvailableBadge(availableUpdate.tagName)
+            else -> strings.currentVersionDetail(installedVersion)
+        }
+        SettingsRow(
+            icon = "download",
+            title = strings.checkForUpdateTitle,
+            detail = updateDetail,
+            onClick = { if (!checkingUpdate) onCheckUpdate() },
+            trailing = {
+                when {
+                    checkingUpdate -> CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Purple)
+                    availableUpdate != null -> Box(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Purple.copy(alpha = 0.14f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(strings.updateBadgeNew, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Purple)
+                    }
+                    else -> Glyph("chevron", Modifier.size(16.dp), tint = Muted)
+                }
+            }
+        )
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         Glyph("shield", Modifier.size(14.dp), tint = Purple); Spacer(Modifier.width(7.dp))
