@@ -2,13 +2,13 @@
 
 <div align="center">
 
-### Modern, Purposeful & Offline-First Personal Finance for Android
+### Offline-first personal finance for Android
 
 [![Android](https://img.shields.io/badge/Android-13%2B%20(API%2033%2B)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%20Design-3-7437DB?style=for-the-badge)](https://m3.material.io)
-[![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Offline-green?style=for-the-badge)](https://developer.android.com)
+[![GitHub Release](https://img.shields.io/github/v/release/KatowProject/costly?style=for-the-badge)](https://github.com/KatowProject/costly/releases/latest)
 
 <br/>
 
@@ -17,27 +17,32 @@
 <br/>
 <br/>
 
-*Designed for clarity, financial discipline, and total data privacy. Zero tracking, zero telemetry, and zero unencrypted cloud dependencies.*
+Track your finances offline. Cloud backup and app update checks use an internet connection.
 
 </div>
 
 ---
 
+## Install & Update
+
+Download the APK from [GitHub Releases](https://github.com/KatowProject/costly/releases/latest) and open it on a device running Android 13 or later.
+
+In builds with the update checker, open **More → Check for updates** to compare your installed version with the latest GitHub release. The app also checks on launch when at least 12 hours have passed since the last recorded check. When a new version is available, you can open the APK download, snooze the reminder for 1, 3, or 7 days, or skip that version. Complete the installation in Android after downloading the APK.
+
 ## ✨ Features at a Glance
 
-- **📊 Comprehensive Financial Dashboard**: Real-time aggregated balance across all accounts, monthly income/expense metrics, interactive Canvas category donut chart, category budget progress bars, and recent transaction history.
-- **💳 Multi-Wallet & Accounts**: Unified tracking for Cash, Bank Accounts, and E-Wallets with initial balance calculations and automated balance updates. In-use wallets are protected from accidental deletion.
-- **🏷️ Customizable Categories**: Distinct income and expense categories featuring custom vector icons and relational integrity safeguards.
-- **🎯 Monthly Budgets & Spending Limits**: Establish per-category spending ceilings with visual progress meters and instant over-budget alerts.
-- **🌱 Savings Goals**: Set target amounts and target dates, track incremental savings contributions, and visualize timeline progress.
-- **🔁 Recurring Scheduled Transactions**: Automate daily, weekly, or monthly income and expenses. Due entries automatically catch up on application launch and through background WorkManager workers.
-- **🤝 Debts & Receivables**: Track borrowed and lent money, payment progress, remaining balances, due dates, and settlement status.
-- **📈 Comprehensive Financial Reports**: Analyze financial summaries, category distribution, and cumulative cash flow trends. Export reports directly to **PDF**, **Excel (.xlsx)**, and **CSV** formatted in your active language and currency.
-- **🔐 PIN & Biometric Security**: Secure 6-digit PIN hashed using PBKDF2 with unique salts, brute-force rate-limiting timeouts, and biometric fingerprint/face authentication. Automatically locks when the app is backgrounded.
-- **📦 Encrypted Backups**: ZIP backups containing the SQLite database and all file attachments encrypted with AES-256-GCM using PBKDF2-HMAC-SHA256 key derivation.
-- **⏰ Automated Scheduled Backups**: Background WorkManager jobs run every 1, 6, 12, or 24 hours to a user-selected local folder, retaining up to 30 historical backup versions.
-- **☁️ Google Drive Cloud Backup (Hybrid Dual-Backup)**: Directly connect your personal Google Drive account via OAuth 2.0. Backups are stored locally and mirrored to your personal Google Drive automatically. All cloud files remain 100% zero-knowledge encrypted with AES-256-GCM. Includes in-app cloud backup browsing and one-click restore.
-- **🌐 Native Android Localization & Multi-Currency**: Built using Android's standard XML string resource architecture with native Android 13+ Per-App Language Preferences (`locales_config.xml`). Seamlessly switch between Indonesian (Bahasa Indonesia) and English, and choose from multiple world currencies (IDR, USD, EUR, GBP, SGD, MYR, JPY, AUD).
+- 📊 The **dashboard** shows your balance across all accounts, monthly income and expenses, spending by category, budget progress, and recent transactions.
+- 💳 **Wallets** track balances for cash, bank accounts, and e-wallets. Costly protects wallets linked to transactions from deletion.
+- 🏷️ **Custom categories** group income and expenses and let you choose an icon for each category.
+- 🎯 **Monthly budgets** show how much you have spent against each category limit and how far over budget you are.
+- 🌱 **Savings goals** track contributions against a target amount and date.
+- 🔁 **Recurring transactions** support daily, weekly, or monthly schedules. Costly processes due entries on launch and through WorkManager.
+- 🤝 **Debts and receivables** track borrowed and lent money, repayments, remaining balances, and due dates.
+- 📈 **Financial reports** show monthly summaries, spending by category, and cash flow. In **Reports → Category**, tap a category to see its expense transactions for the selected month. Export reports to **PDF**, **Excel (.xlsx)**, or **CSV** using your selected language and currency.
+- 🔐 **App lock** supports a six-digit PIN and biometric unlock on supported devices. Choose whether to lock immediately when leaving the app or allow a grace period of 30 seconds, 1 minute, or 5 minutes.
+- 📦 **Encrypted backups** support local files, Google Drive, and Microsoft OneDrive. Schedule backups and see when each destination last backed up successfully.
+- 🎨 **Appearance settings** let you use a light or dark theme or follow your system setting. Screen transitions and charts are animated.
+- 🌐 **Language and currency settings** include Bahasa Indonesia and English, and eight display currencies (IDR, USD, EUR, GBP, SGD, MYR, JPY, AUD).
 
 ---
 
@@ -53,7 +58,7 @@ app/src/main/res/
 ```
 
 ### Standard XML Resource Strings
-All UI strings reside in Android's standard `res/values/strings.xml` and `res/values-en/strings.xml`. In Compose, strings are accessed reactively via `LocalStrings.current` (powered by `AppStrings(context)` delegating to `context.getString(R.string.xxx)`).
+The default and English UI strings are defined in `res/values/strings.xml` and `res/values-en/strings.xml`. Compose screens access them through `LocalStrings.current`, backed by `AppStrings`.
 
 ### Android 13+ Per-App Language Preferences
 With `minSdk 33` and `locales_config.xml`, users can change the language:
@@ -62,9 +67,7 @@ With `minSdk 33` and `locales_config.xml`, users can change the language:
 
 ### How to Add a New Language
 
-Adding a new language takes zero Kotlin code modifications:
-
-1. In Android Studio, right-click `res/values` → **New** → **Values Resource File**, name it `strings.xml`, and select your target **Locale** (e.g. `Spanish (es)` or `Japanese (ja)`). Alternatively, open the **Translations Editor** in Android Studio to edit translations side-by-side.
+1. In Android Studio, right-click `res/values` → **New** → **Values Resource File**, name it `strings.xml`, and select the locale. You can also use the **Translations Editor**.
 2. Add your new language tag to `app/src/main/res/xml/locales_config.xml`:
    ```xml
    <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
@@ -73,7 +76,7 @@ Adding a new language takes zero Kotlin code modifications:
        <locale android:name="es" /> <!-- New language -->
    </locale-config>
    ```
-3. Android OS and Costly will automatically recognize and load the new language!
+3. Add the locale to `LocalizationManager` and update the `AppLanguage` mapping in [Localization.kt](app/src/main/java/com/katowproject/costly/Localization.kt) so in-app language selection and formatting can use it.
 
 ### How to Add a New Currency
 
@@ -93,21 +96,20 @@ The newly registered currency automatically appears in **Settings > Currency** a
 
 ---
 
-## ☁️ Google Drive Cloud Backup (Hybrid Sync)
+## ☁️ Backup & Restore
 
-Costly features dual-mode hybrid backups combining local storage with private Google Drive synchronization:
+Costly stores financial records in SQLite on the device. A `.costly` backup contains a JSON export and transaction attachments, encrypted on the device with AES-256-GCM using a key derived from your backup password with PBKDF2-HMAC-SHA256.
 
-- **Zero-Knowledge Encryption**: Backups are encrypted on-device with AES-256-GCM using PBKDF2 before transmission. Neither Google nor third parties can inspect your records without your master backup password.
-- **Per-User Isolation**: Backups are uploaded directly into each user's personal Google Drive using the `https://www.googleapis.com/auth/drive.file` scope. No central server or developer storage is involved.
-- **Automated Dual-Sync**: When both local and Drive backups are enabled, background WorkManager jobs create the local archive and mirror it to Google Drive, automatically pruning older files based on your configured retention policy.
-- **In-App Cloud Restore**: Browse, inspect timestamps and file sizes, and restore historical backups directly from Google Drive.
+- **Local backup**. Export a backup on demand, restore from a file, or choose a folder for scheduled backups.
+- **Google Drive and Microsoft OneDrive**. Connect your account in **Settings** to upload a backup on demand, browse remote backups, or restore a selected file. OneDrive sign-in uses OAuth with PKCE and uploads through Microsoft Graph.
+- **Scheduling and retention**. Choose a 1, 6, 12, or 24-hour interval and keep 3, 7, 14, or 30 backup versions. For scheduled OneDrive uploads, also enable automatic local or Google Drive backup.
 
 ---
 
 ## 🛠️ Tech Stack & Architecture
 
 - **UI Framework**: Jetpack Compose with Material 3 design system.
-- **Language**: Kotlin 2.2.10 (Target SDK 37, Min SDK 33 / Android 13+).
+- **Language and SDK**. Kotlin 2.2.10, compile and target SDK 37, and minimum SDK 33 (Android 13).
 - **Architecture**: MVVM with unidirectional data flow (UDF) and `AndroidViewModel`.
 - **Database**: Offline-first SQLite database (`SQLiteOpenHelper`) with transactional queries, foreign key enforcement, and relational consistency.
 - **Security**: AES-256-GCM encryption, PBKDF2-HMAC-SHA256 key derivation, Android BiometricPrompt API, and Android Keystore.
@@ -121,7 +123,7 @@ Costly features dual-mode hybrid backups combining local storage with private Go
 ### Prerequisites
 
 - Android 13+ emulator or physical device (API level 33+).
-- Java Development Kit (JDK) 17+ or Android Studio JBR.
+- JDK 17 or newer to launch the Gradle wrapper. The Gradle daemon uses Java 25 and can provision it when needed.
 - Android SDK Platform 37.
 
 ### Running with VS Code
@@ -129,6 +131,8 @@ Costly features dual-mode hybrid backups combining local storage with private Go
 1. Open the project root directory in VS Code.
 2. Open **Run and Debug** (`Ctrl+Shift+D`), select **Costly: Build & Run Android**, and press **F5** (or press `Ctrl+Shift+B` to run the default build task).
 3. The build automation script will start the emulator (if not already running), compile the debug APK, install it, and launch Costly.
+
+See the [Windows automation guide](scripts/README.md) for emulator options and SDK/JDK detection.
 
 ### Windows Automation Scripts
 
@@ -152,33 +156,31 @@ bash scripts/build-and-run.sh
 
 ### Manual Gradle Build
 
-Point `JAVA_HOME` to Android Studio's JBR runtime:
+Set `JAVA_HOME` to your JDK directory. On Windows, run the wrapper from the project root.
 
 ```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-$env:PATH = "C:\Program Files\Android\Android Studio\jbr\bin;$env:PATH"
-
-# Assemble Debug APK
 .\gradlew.bat :app:assembleDebug
-
-# Run Unit Tests
-.\gradlew.bat :app:testDebugUnitTest
 ```
 
-Built APK location: `app/build/outputs/apk/debug/app-debug.apk`.
+On macOS or Linux, use `./gradlew :app:assembleDebug`. The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Release Builds & Versioning
+
+Publishing a GitHub Release with a `vMAJOR.MINOR.PATCH` tag triggers the [release workflow](.github/workflows/release.yml). It runs the JVM unit tests, builds the APK, and attaches `Costly-<tag>.apk` to the release. A manual workflow run produces a workflow artifact.
+
+Gradle strips the leading `v` for `versionName` and calculates `versionCode` as `major * 10000 + minor * 100 + patch`. For example, `v1.1.0` produces version name `1.1.0` and version code `10100`. A local build defaults to `1.0.0`. Override the version with `-PversionName=1.1.0` or `APP_VERSION_NAME`.
+
+Use the same signing key as the previous APK for Android to install an update over an existing copy. The workflow reads the release key from the `KEYSTORE_BASE64` repository secret.
 
 ---
 
 ## 🧪 Verification & Testing
 
-Costly includes extensive test suites covering:
-- **Finance Store Tests**: Balance calculations, multi-wallet isolation, cross-month arithmetic, category budget enforcement, and transaction CRUD operations.
-- **Recurring Transactions**: Idempotency checks and catch-up rules preventing duplicate automated transactions.
-- **Encrypted Backup & Restore**: Archive integrity, roundtrip backup/restore with file attachments, password rejection, and recovery tests.
-- **Localization & Currencies**: Locale date/month formatting, dynamic currency formatting across multiple world currencies, frequency canonicalization, and language registry.
-- **Report Exporters**: Formula cell neutralization in CSV exports, OOXML XML structure validity in Excel exports, and localized document headers.
+JVM unit tests cover balance and budget calculations, localization, CSV and Excel exports, update version comparison and GitHub fallback parsing, and category transaction filtering. Instrumented tests cover app startup, transaction flows, SQLite persistence, recurring transactions, PDF rendering, and encrypted backup and restore.
 
-Run all unit tests:
+Run the JVM unit tests, then run the instrumented tests with an emulator or device connected.
+
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest
+.\gradlew.bat :app:connectedDebugAndroidTest
 ```
